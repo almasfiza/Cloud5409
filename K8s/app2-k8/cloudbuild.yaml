@@ -1,0 +1,54 @@
+steps:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'auth'
+      - 'configure-docker'
+      - '--quiet'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/k8-b00933336/k8-b00933336/secondimage:latest'
+      - '.'
+  
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/k8-b00933336/k8-b00933336/secondimage:latest'
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'container'
+      - 'clusters'
+      - 'get-credentials'
+      - 'my-gke-cluster'
+      - '--region'
+      - 'us-central1'
+      - '--project'
+      - 'k8-b00933336'
+  
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        deployment=$(gcloud container clusters get-credentials my-gke-cluster --region us-central1 --project k8-b00933336 && kubectl get deployment app2-deployment -n default --ignore-not-found=true -o name)
+        if [[ -n $deployment ]]; then
+          gcloud container clusters get-credentials my-gke-cluster --region us-central1 --project k8-b00933336 && kubectl delete deployment app2-deployment -n default
+        else
+          echo "No existing deployment found. Skipping deletion."
+        fi
+
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'apply'
+      - '-f'
+      - 'app2-deployment.yaml'
+      - '-f'
+      - 'app2-service.yaml'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=my-gke-cluster'
+      - 'KUBECTL_VERSION=1.27'

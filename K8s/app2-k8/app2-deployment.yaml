@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app2
+  template:
+    metadata:
+      labels:
+        app: app2
+    spec:
+      containers:
+        - name: app2
+          image: us-central1-docker.pkg.dev/k8-b00933336/k8-b00933336/secondimage:latest
+          ports:
+            - containerPort: 4000
+          volumeMounts:
+            - name: almas-volume
+              mountPath: /AlmasfizaAnwarHussain_PV_dir
+      volumes:
+        - name: almas-volume
+          persistentVolumeClaim:
+            claimName: almas-pvc
+
