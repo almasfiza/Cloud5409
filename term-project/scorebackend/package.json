@@ -1,0 +1,8 @@
+{
+    "name": "score-backend",
+    "author": "aahshaikh",
+    "version": "1.0.0",
+    "dependencies": {
+        "aws-sdk": "^2.1415.0"
+    }
+}
