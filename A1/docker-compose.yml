@@ -1,0 +1,38 @@
+version: ABSENT
+services:
+  app1:
+    image: almasfiza/firstimage
+    build:
+      dockerfile: Dockerfile
+      context: ./App1
+    ports:
+      - "6000:6000"
+    depends_on:
+      - app2
+    volumes:
+      - .:/app/data
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.5
+  app2:
+    image: almasfiza/secondimage
+    build:
+      dockerfile: Dockerfile
+      context: ./App2
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app/data
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.6
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
+
+
