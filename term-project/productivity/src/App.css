@@ -1,0 +1,422 @@
+.App {
+  
+  text-align: center;
+}
+body {
+  
+  overflow-x: hidden; /* Hide horizontal scrollbar */
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.home {
+  position: relative;
+  height: 100vh;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.homepage-title{
+  color: white;
+  font-size: 100px;
+  margin-bottom:0px;
+}
+
+.homepage-desc{
+  color: white;
+  padding-top: 0px;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.buttons-container {
+  margin-top: 20px;
+}
+
+.sign-in-btn,
+.register-btn {
+  margin-right: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333333;
+  border: none;
+  cursor: pointer;
+}
+
+.sign-in-btn:hover,
+.register-btn:hover {
+  background-color: #eeeeee;
+}
+
+
+.Header {
+  background-image: url('../src/assets/productivity-bg.png');
+  background-color: rgba(0, 0, 0, 0); /* Adjust the opacity (0.5 in this case) */
+  background-blend-mode: overlay;
+  padding: 2%;
+  color: black;
+  text-align:center;
+  border-bottom: 2px solid black;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+.Header h1{
+  font-size: 70px;
+  margin-bottom: 0px;
+  -webkit-text-stroke: 2px black;
+  text-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+.Header p{
+  font-style: italic;
+  text-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+
+}
+
+/* Login Box */
+
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+  height: 25px;
+  border: 2px solid black;
+ 
+}
+
+input[type="submit"] {
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  border-radius:5px;
+  background: black;
+  border: 2px solid white;
+  color: #fff;
+  padding: 10px 20px;
+  font-weight: bold;
+}
+
+input[type="submit"]:hover {
+  background: white;
+  color: black;
+  border: 2px solid black;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+}
+
+.login-form {
+  background-color: #EAC4EA;
+  border-radius: 10px;
+  border: 2px solid black;
+  color: black;
+  padding: 2rem;
+  text-align: left;
+  font-weight: bold;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+.list-container {
+  display: flex;
+}
+
+.error {
+  color: red;
+  font-size: 12px;
+  text-align: left;
+}
+
+.title {
+  font-size: 25px;
+  margin-bottom: 20px;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px;
+
+}
+.box-login{
+  width: 50%;
+  background-image: url('../src/assets/productivity-bg.png');
+  background-color: rgba(0, 0, 0, 0); /* Adjust the opacity (0.5 in this case) */
+  background-blend-mode: overlay;
+  border-radius: 10px;
+  margin: 2rem auto;
+  border: 2px solid black;
+  color: black;
+  padding: 2rem;
+  text-align: left;
+  font-weight: bold;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+.forgotPwdLink{
+  font-size: 11px;
+  font-style: none;
+  font-weight:lighter;
+  text-align: center;
+}
+
+.forgotPwdLink a{
+  color:white;
+}
+.box-registration{
+  width: 60%;
+  background-image: url('../src/assets/productivity-bg.png');
+  background-color: rgba(0, 0, 0, 0); /* Adjust the opacity (0.5 in this case) */
+  background-blend-mode: overlay;
+  border-radius: 10px;
+  margin: 2rem auto;
+  border: 2px solid black;
+  color: black;
+  padding: 2rem;
+  text-align: left;
+  font-weight: bold;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  background-image: url('../src/assets/productivity-bg.png');
+  background-color: rgba(0, 0, 0, 0); /* Adjust the opacity (0.5 in this case) */
+  background-blend-mode: overlay;
+  color:black;
+  border-bottom: 2px solid black;
+}
+.navbar a {
+  padding: 10px;
+  text-decoration: none;
+  color: black;
+}
+.navbar a:hover{
+  font-weight: bold;
+}
+
+.reg-message{
+  color: red;
+  font-size: 0.7em;
+}
+
+/* Dashboard */
+.dashboard-header {
+  display: flex;
+  justify-content: space-evenly;
+  border: 2px solid black;
+  padding: 2rem 0rem;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  background-image: url('../src/assets/productivity-bg.png');
+  background-color: rgba(0, 0, 0, 0); /* Adjust the opacity (0.5 in this case) */
+  background-blend-mode: overlay;
+  font-size:50px;
+  color:black;
+  -webkit-text-stroke: 2px black;
+  text-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  
+}
+.dashboard-header span{
+  padding: 0 1rem;
+}
+
+.dashboard-body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.row1 {
+  display: flex;
+  flex: 2;
+}
+
+.row2 {
+  display: flex;
+  flex: 1;
+}
+
+.to-do {
+  flex: 1;
+  background-image: url('../src/assets/productivity-bg.png');
+  background-color: rgba(0, 0, 0, 0); /* Adjust the opacity (0.5 in this case) */
+  background-blend-mode: overlay;
+}
+
+
+
+.habit-tracker {
+  flex: 1;
+}
+
+/* Habit tracker */
+.habit-table {
+  border-collapse: collapse;
+}
+
+.habit-table th,
+.habit-table td {
+  border: 1px solid #ccc;
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.habit-table td:not(:first-child):not(:first-of-type):hover {
+  background-color: black;
+  border: 2px solid #61dafb;
+}
+
+.habit-table td:not(:first-child):not(:first-of-type).selected {
+  background-color: #EAC4EA;
+  border: 2px solid black;
+}
+
+.habit-table th.first-column,
+.habit-table td.first-column {
+  width: 200px;
+  font-weight: bold;
+}
+
+.table-container {
+  width:100%;
+  overflow-x: auto;
+  padding: 1rem 0;
+
+}
+.table-wrapper {
+  overflow-x:auto;
+  max-width: max-content;
+}
+
+.habit-table {
+  table-layout: fixed;
+}
+
+.completed-habit {
+  pointer-events: none;
+}
+.productivity-btn{
+  border: 2px solid black;
+  background-color: white;
+  color: black;
+  padding: 10px;
+  margin: 1rem;
+ 
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.productivity-btn:hover {
+  border: 2px solid black;
+  background-color: black;
+  color: white;
+  cursor: pointer;
+}
+
+.todo-adder {
+  padding: 1rem;
+  margin-left: 3rem;
+  margin-right: 3rem;
+}
+
+.todo-adder-text {
+  width: 50%;
+  border-radius: 5px;
+}
+
+.todo-tasks {
+  margin-left: 3rem;
+  margin-right: 3rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-tasks li {
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  margin-bottom: 0.5rem;
+}
+
+.todo-tasks li input[type="checkbox"] {
+  margin-right: 0.5rem;
+  padding-right: 1rem;
+}
+
+.todo-tasks li button {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 0.3rem 0.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 1rem;
+}
+
+.desc-p{
+  margin: 2rem auto;
+  padding: 0 4rem;
+  width: 70%;
+  list-style: none;
+}
+
+
+.del-icon{
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 0.3rem 0.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 1rem;
+}
