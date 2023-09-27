@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudFormation Template to create DynamoDB tables
+
+Resources:
+  UsersDBTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "aahshaikh-usersdb"
+      AttributeDefinitions:
+        - AttributeName: "usermail"
+          AttributeType: "S"
+        - AttributeName: "score"
+          AttributeType: "N"
+      KeySchema:
+        - AttributeName: "usermail"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "score-index"
+          KeySchema:
+            - AttributeName: "score"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      BillingMode: "PROVISIONED"
+
+  HabitsDBTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "aahshaikh-habitsdb"
+      AttributeDefinitions:
+        - AttributeName: "habitID"
+          AttributeType: "S"
+        - AttributeName: "usermail"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "habitID"
+          KeyType: "HASH"
+        - AttributeName: "usermail"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      BillingMode: "PROVISIONED"
+
+Outputs:
+  UsersDBTableArn:
+    Description: "ARN of the aahshaikh-usersdb table"
+    Value: !GetAtt UsersDBTable.Arn
+
+  HabitsDBTableArn:
+    Description: "ARN of the aahshaikh-habitsdb table"
+    Value: !GetAtt HabitsDBTable.Arn

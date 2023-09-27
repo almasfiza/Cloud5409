@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a Lambda function and HTTP API
+
+Resources:
+  LambdaFnRegLogin:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-regloginLambda
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: aahshaikh-reglogin
+        S3Key: aahshaikh-reglogin.zip
+      Role: arn:aws:iam::673619607849:role/LabRole
+
+  ApiGatewayRegLogin:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: aahshaikh-reglogin-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+
+  LambdaPermissionHealth:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+
+  LambdaPermissionLogin:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+
+  LambdaPermissionRegister:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+
+  LambdaPermissionVerify:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+
+
+  HealthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  LoginIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  RegisterIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  VerifyIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  HealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "GET /health"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref HealthIntegration
+
+  LoginRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "POST /login"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref LoginIntegration
+
+  RegisterRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "POST /register"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref RegisterIntegration
+
+  VerifyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "POST /verify"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref VerifyIntegration
+
+  
+  DefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      StageName: "$default"
+      AutoDeploy: true
+      Description: "Default Stage"
+Outputs:
+  ApiEndpoint:
+    Description: URL endpoint of the created HTTP API
+    Value: !Sub "https://${ApiGatewayRegLogin}.execute-api.${AWS::Region}.amazonaws.com"  # Replace 'prod' with your desired stage name

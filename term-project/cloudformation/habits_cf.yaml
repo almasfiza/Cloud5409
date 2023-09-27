@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a Lambda function and HTTP API
+
+Resources:
+  LambdaFnHabits:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-HabitLambda
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: aahshaikh-habits
+        S3Key: aahshaikh-habits.zip
+      Role: arn:aws:iam::673619607849:role/LabRole
+
+  ApiGatewayHabits:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: aahshaikh-habits-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+
+  LambdaPermissionAdd:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+
+  LambdaPermissionComplete:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+
+  LambdaPermissionDelete:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+
+  LambdaPermissionGetHabit:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+
+
+  AddIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  CompleteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  DeleteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  GetHabitIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0"  # Add this line to specify the payload format version
+
+  AddRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /addhabit"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref AddIntegration
+
+  CompleteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /complete"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref CompleteIntegration
+
+  DeleteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /deletehabit"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref DeleteIntegration
+
+  GetHabitRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /gethabit"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref GetHabitIntegration
+
+  
+  DefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      StageName: "$default"
+      AutoDeploy: true
+      Description: "Default Stage"
+
+Outputs:
+  ApiEndpoint:
+    Description: URL endpoint for habits of the created HTTP API
+    Value: !Sub "https://${ApiGatewayHabits}.execute-api.${AWS::Region}.amazonaws.com"  # Replace 'prod' with your desired stage name

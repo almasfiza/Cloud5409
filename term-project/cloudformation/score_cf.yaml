@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a Lambda function and HTTP API
+
+Resources:
+  LambdaFnScore:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-scoreLambda
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: aahshaikh-score
+        S3Key: aahshaikh-score.zip
+      Role: arn:aws:iam::673619607849:role/LabRole
+
+  ApiGatewayScore:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: aahshaikh-regscore-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+
+  LambdaPermissionUpdate:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnScore
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayScore}/*/*"
+
+  UpdateIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayScore
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnScore.Arn}/invocations
+      PayloadFormatVersion: "2.0"  
+
+  
+  UpdateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayScore
+      RouteKey: "POST /updatescore"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref UpdateIntegration
+
+  
+  DefaultStageScore:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGatewayScore
+      StageName: "$default"
+      AutoDeploy: true
+      Description: "Default Stage"
+
+Outputs:
+  ApiEndpoint:
+    Description: URL endpoint of the created HTTP API
+    Value: !Sub "https://${ApiGatewayScore}.execute-api.${AWS::Region}.amazonaws.com" 

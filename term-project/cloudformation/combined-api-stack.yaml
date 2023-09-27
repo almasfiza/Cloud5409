@@ -1,0 +1,565 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to deploy 5409 term assignment for B00933336
+# https://docs.aws.amazon.com/aws-backup/latest/devguide/assigning-resources.html - reference of AWS Backup
+# Reference: AWS Cloudformation docs.
+
+# parameters used for AWS Backup
+Parameters:
+  BackupVaultName:
+    Type: String
+    Default: "CloudFormationTestBackupVault"
+  BackupPlanName:
+    Type: String
+    Default: "CloudFormationTestBackupPlan"
+  BackupSelectionName: 
+    Type: String
+    Default: "CloudFormationTestBackupSelection"
+  BackupPlanTagValue:
+    Type: String
+    Default: "test-value-1"
+  RuleName1:
+    Type: String
+    Default: "TestRule1"
+  ScheduleExpression:
+    Type: String
+    Default: "cron(40 23/1 * * ? *)"
+  StartWindowMinutes:
+    Type: Number
+    Default: 60
+  CompletionWindowMinutes:
+    Type: Number
+    Default: 120
+  RecoveryPointTagValue:
+    Type: String
+    Default: "test-recovery-point-value"
+  MoveToColdStorageAfterDays:
+    Type: Number
+    Default: 120
+  DeleteAfterDays:
+    Type: Number
+    Default: 210
+
+
+# Resources provisioned using this script
+
+Resources:
+
+  # DyanamoDB tables
+  UsersDBTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "aahshaikh-usersdb"
+      AttributeDefinitions:
+        - AttributeName: "usermail"
+          AttributeType: "S"
+        - AttributeName: "score"
+          AttributeType: "N"
+      KeySchema:
+        - AttributeName: "usermail"
+          KeyType: "HASH"
+      Tags:
+        - Key: "aahshaikh"
+          Value: "backup"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "score-index"
+          KeySchema:
+            - AttributeName: "score"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      BillingMode: "PROVISIONED"
+
+  HabitsDBTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "aahshaikh-habitsdb"
+      Tags:
+        - Key: "aahshaikh"
+          Value: "backup"
+      AttributeDefinitions:
+        - AttributeName: "habitID"
+          AttributeType: "S"
+        - AttributeName: "usermail"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "habitID"
+          KeyType: "HASH"
+        - AttributeName: "usermail"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      BillingMode: "PROVISIONED"
+
+  # AWS Backup
+  CloudFormationTestBackupVault:
+    Type: "AWS::Backup::BackupVault"
+    Properties:
+      BackupVaultName: !Ref BackupVaultName
+  
+  BasicBackupPlan:
+    Type: "AWS::Backup::BackupPlan"
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Ref BackupPlanName
+        BackupPlanRule:
+          - RuleName: !Ref RuleName1
+            TargetBackupVault: !Ref BackupVaultName
+            ScheduleExpression: !Ref ScheduleExpression
+            StartWindowMinutes: !Ref StartWindowMinutes
+            CompletionWindowMinutes: !Ref CompletionWindowMinutes
+            RecoveryPointTags:
+              test-recovery-point-key-1: !Ref RecoveryPointTagValue
+            Lifecycle:
+              MoveToColdStorageAfterDays: !Ref MoveToColdStorageAfterDays
+              DeleteAfterDays: !Ref DeleteAfterDays
+      BackupPlanTags:
+        test-key-1: !Ref BackupPlanTagValue
+    DependsOn: CloudFormationTestBackupVault
+
+  BasicBackupSelection:
+    Type: 'AWS::Backup::BackupSelection'
+    Properties:
+      BackupPlanId: !Ref BasicBackupPlan
+      BackupSelection:
+        SelectionName: !Ref BackupSelectionName
+        IamRoleArn: arn:aws:iam::673619607849:role/LabRole
+        ListOfTags:
+          - ConditionType: STRINGEQUALS
+            ConditionKey: aahshaikh
+            ConditionValue: backup
+        NotResources:
+          - 'arn:aws:rds:*:*:cluster:*'
+
+
+  # SNS topic
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Notification Topic
+      TopicName: NotificationTopic
+      
+  # Lambda function for login and registration backend 
+  LambdaFnRegLogin:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-regloginLambda
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: aahshaikh-reglogin
+        S3Key: aahshaikh-reglogin.zip
+      Role: arn:aws:iam::673619607849:role/LabRole
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref MySNSTopic
+
+  # API Gateway to handle the requests for login and registration.
+  ApiGatewayRegLogin:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: aahshaikh-reglogin-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+
+  LambdaPermissionHealth:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+
+  LambdaPermissionLogin:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+
+  LambdaPermissionRegister:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+  
+  # permission to access the lambda function using the API Gateway
+  LambdaPermissionVerify:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnRegLogin
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRegLogin}/*/*"
+
+
+  HealthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0" 
+  LoginIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0" 
+  RegisterIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0" 
+  VerifyIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnRegLogin.Arn}/invocations
+      PayloadFormatVersion: "2.0"  
+  HealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "GET /health"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref HealthIntegration
+  LoginRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "POST /login"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref LoginIntegration
+  RegisterRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "POST /register"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref RegisterIntegration
+  VerifyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      RouteKey: "POST /verify"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref VerifyIntegration
+  DefaultStageRegLogin:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGatewayRegLogin
+      StageName: "$default"
+      AutoDeploy: true
+      Description: "Default Stage"
+    
+  # Lambda function to handle the dashboard functionality
+  LambdaFnHabits:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-HabitLambda
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: aahshaikh-habits
+        S3Key: aahshaikh-habits.zip
+      Role: arn:aws:iam::673619607849:role/LabRole
+
+  # API Gateway to handle the dashboard functionality
+  ApiGatewayHabits:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: aahshaikh-habits-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+  
+  LambdaPermissionAdd:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+  LambdaPermissionComplete:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+  LambdaPermissionDelete:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+  LambdaPermissionGetHabit:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnHabits
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayHabits}/*/*"
+
+  AddIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0" 
+  CompleteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0"  
+  DeleteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0" 
+  GetHabitIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnHabits.Arn}/invocations
+      PayloadFormatVersion: "2.0" 
+
+  AddRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /addhabit"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref AddIntegration
+  CompleteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /complete"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref CompleteIntegration
+  DeleteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /deletehabit"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref DeleteIntegration
+  GetHabitRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      RouteKey: "POST /gethabit"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref GetHabitIntegration
+
+  DefaultStageHabit:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGatewayHabits
+      StageName: "$default"
+      AutoDeploy: true
+      Description: "Default Stage"
+  
+  # Lambda function to keep a track of the score for the user on the dashboard
+  LambdaFnScore:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-scoreLambda
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: aahshaikh-score
+        S3Key: aahshaikh-score.zip
+      Role: arn:aws:iam::673619607849:role/LabRole
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref MySNSTopic
+
+  # API gateway to handle the score functionality
+  ApiGatewayScore:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: aahshaikh-regscore-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+
+  LambdaPermissionUpdate:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFnScore
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayScore}/*/*"
+
+  UpdateIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayScore
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFnScore.Arn}/invocations
+      PayloadFormatVersion: "2.0"  
+
+  UpdateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGatewayScore
+      RouteKey: "POST /updatescore"
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref UpdateIntegration
+
+  DefaultStageScore:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGatewayScore
+      StageName: "$default"
+      AutoDeploy: true
+      Description: "Default Stage"
+
+  # Elastic Beanstalk for the project
+  FrontendApplication:
+    Type: "AWS::ElasticBeanstalk::Application"
+    Properties:
+      ApplicationName: "aahshaikh-productivity"
+      Description: "5409 term assignment b00933336"
+      
+  # Elastic Beanstalk application version creation for the project
+  TermProjectApplicationVersion:
+    Type: "AWS::ElasticBeanstalk::ApplicationVersion"
+    DependsOn:
+      - FrontendApplication
+    Properties:
+      ApplicationName: !Ref FrontendApplication
+      Description: "Term Project Application Version"
+      SourceBundle:
+        S3Bucket: "aahshaikh-frontend"
+        S3Key: "productivity.zip"
+
+  # Elastic Beanstalk environment creation for the project
+  FrontendEnvironment: 
+    Type: "AWS::ElasticBeanstalk::Environment"
+    DependsOn:
+      - FrontendApplication
+    Properties:
+      ApplicationName: !Ref FrontendApplication
+      Description: "Term Project Environment"
+      EnvironmentName: "aahshaikh-productivity"
+      SolutionStackName: "64bit Amazon Linux 2 v5.8.3 running Node.js 18"
+      VersionLabel: !Ref TermProjectApplicationVersion
+      OperationsRole: "arn:aws:iam::673619607849:role/LabRole"
+      Tier:
+        Name: "WebServer"
+        Type: "Standard"
+      OptionSettings:
+        - Namespace: "aws:elasticbeanstalk:environment"
+          OptionName: EnvironmentType
+          Value: "SingleInstance"
+
+        - Namespace: "aws:elasticbeanstalk:environment"
+          OptionName: ServiceRole
+          Value: arn:aws:iam::673619607849:role/LabRole
+
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "IamInstanceProfile"
+          Value: "LabInstanceProfile"
+
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "HABIT_ENDPOINT"
+          Value: !Sub "https://${ApiGatewayHabits}.execute-api.${AWS::Region}.amazonaws.com"
+       
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "SCORE_ENDPOINT"
+          Value: !Sub "https://${ApiGatewayScore}.execute-api.${AWS::Region}.amazonaws.com" 
+
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "REGLOGIN_ENDPOINT"
+          Value: !Sub "https://${ApiGatewayRegLogin}.execute-api.${AWS::Region}.amazonaws.com" 
+
+# Outputs that we should receive once the script is successful
+Outputs:
+  UsersDBTableArn:
+    Description: "ARN of the aahshaikh-usersdb table"
+    Value: !GetAtt UsersDBTable.Arn
+
+  HabitsDBTableArn:
+    Description: "ARN of the aahshaikh-habitsdb table"
+    Value: !GetAtt HabitsDBTable.Arn
+
+  ApiEndpointRegLogin:
+    Description: URL endpoint of reg-login created HTTP API
+    Value: !Sub "https://${ApiGatewayRegLogin}.execute-api.${AWS::Region}.amazonaws.com" 
+  ApiEndpointHabit:
+    Description: URL endpoint for habits of the created HTTP API
+    Value: !Sub "https://${ApiGatewayHabits}.execute-api.${AWS::Region}.amazonaws.com" 
+  ApiEndpointScore:
+    Description: URL endpoint score of the created HTTP API
+    Value: !Sub "https://${ApiGatewayScore}.execute-api.${AWS::Region}.amazonaws.com" 
+  
+  FrontendURL:
+    Description: "Frontend URL"
+    Value: !Join ["", ["http://", !GetAtt FrontendEnvironment.EndpointURL]]

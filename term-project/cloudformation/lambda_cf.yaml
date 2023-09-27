@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Lambda functions with code from S3 buckets
+
+Resources:
+  AahshaikhRegloginLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-regloginLambda
+      Runtime: nodejs14.x
+      Handler: index.handler
+      Role: "arn:aws:iam::673619607849:role/LabRole"
+      Code:
+        S3Bucket: aahshaikh-reglogin
+        S3Key: aahshaikh-reglogin.zip
+
+  AahshaikhHabitsLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-habitsLambda
+      Runtime: nodejs14.x
+      Handler: index.handler
+      Role: "arn:aws:iam::673619607849:role/LabRole"
+      Code:
+        S3Bucket: aahshaikh-habits
+        S3Key: aahshaikh-habits.zip
+
+  AahshaikhScoreLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aahshaikh-scoreLambda
+      Runtime: nodejs14.x
+      Handler: index.handler
+      Role: "arn:aws:iam::673619607849:role/LabRole"
+      Code:
+        S3Bucket: aahshaikh-score
+        S3Key: aahshaikh-score.zip
