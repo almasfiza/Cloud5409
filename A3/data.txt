@@ -1,0 +1,1 @@
+{"products": [{"name": "product 1", "price": "price 1", "availability": true}, {"name": "product 2", "price": "price 2", "availability": false}]}
